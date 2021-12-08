@@ -3,7 +3,7 @@ package com.example.chitchat
 import com.google.gson.annotations.SerializedName
 
 data class Messages(
-    @SerializedName("count") var id: Int,
+    @SerializedName("count") var count: Int,
     @SerializedName("messages") var messages: List<Message>
 )
 

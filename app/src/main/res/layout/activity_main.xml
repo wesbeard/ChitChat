@@ -6,7 +6,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="40dp"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingBottom="10dp"
     tools:context=".MainActivity">
 
     <androidx.recyclerview.widget.RecyclerView
@@ -21,6 +23,7 @@
         android:id="@+id/input_row"
         android:layout_width="match_parent"
         android:layout_height="48dp"
+        android:layout_marginTop="10dp"
         android:orientation="horizontal">
 
         <EditText
@@ -28,7 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:backgroundTint="@color/blue_800"
+            android:backgroundTint="@color/dark"
             android:ems="10"
             android:hint="@string/message_hint"
             android:inputType="textPersonName"
@@ -36,12 +39,12 @@
             android:textCursorDrawable="@null" />
 
         <ImageButton
-            android:id="@+id/imageButton"
+            android:id="@+id/send"
             android:layout_width="100dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:backgroundTint="@color/blue_50"
-            app:srcCompat="@drawable/send"
+            android:backgroundTint="@color/light"
+            app:srcCompat="@drawable/send_green"
             tools:ignore="SpeakableTextPresentCheck" />
     </LinearLayout>
 

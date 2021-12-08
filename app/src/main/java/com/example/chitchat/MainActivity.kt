@@ -1,23 +1,20 @@
 package com.example.chitchat
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import okhttp3.*
-import kotlin.concurrent.thread
-
+import androidx.recyclerview.widget.LinearLayoutManager
 
 const val API_KEY = "784ff8a6-1328-42b7-9702-5a11a99bf0e0"
 const val CLIENT = "wesley.beard@mymail.champlain.edu"
+const val MESSAGES_PER_CALL = 20
 var client: OkHttpClient = OkHttpClient()
 
 class MainActivity : AppCompatActivity() {
@@ -25,115 +22,176 @@ class MainActivity : AppCompatActivity() {
     private lateinit var messagesRecycler: RecyclerView
     private lateinit var sendButton: ImageButton
     private lateinit var messageBox: EditText
-
-    lateinit var messages: List<Message>
+    var messages = mutableListOf<Message>()
+    var numMessages = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        title = "ChitChat"
+        title = "Chit Chat"
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         val loadingThread = Thread {
-            var rawMessages = getMessages(limit = 3)
-            val gson = Gson()
-            val deserializedMessages = gson.fromJson(rawMessages, Messages::class.java)
-
-            messages = deserializedMessages.messages
+            getMessages()
         }
 
-        loadingThread.start() // spawn thread
-        loadingThread.join() // wait for thread to finish
+        loadingThread.start()
+        // Only create recycler when messages are done loading
+        loadingThread.join()
 
         messagesRecycler = findViewById(R.id.messages_recycler)
-        messagesRecycler.layoutManager = GridLayoutManager(this@MainActivity,1)
         messagesRecycler.adapter = RecyclerAdapter()
+
+        messageBox = findViewById(R.id.message)
+        sendButton = findViewById(R.id.send)
+        sendButton.setOnClickListener {
+            val sendThread = Thread {
+                sendMessage(messageBox.text.toString())
+                getSent()
+            }
+            sendThread.start()
+            sendThread.join()
+            messagesRecycler.adapter?.notifyItemInserted(0)
+            messagesRecycler.smoothScrollToPosition(0)
+        }
+
+        // Set layout manager to reverse linear layout
+        val linearLayoutManager = LinearLayoutManager(this)
+        linearLayoutManager.reverseLayout = true
+        messagesRecycler.layoutManager = linearLayoutManager
     }
 
-    inner class MessageViewHolder(messageView: View) : RecyclerView.ViewHolder(messageView) {
-        lateinit var message: Message
-        private val messageView: TextView = messageView.findViewById(R.id.message_display)
+    abstract class ItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        abstract fun initialize(position: Int)
+    }
 
-        init {
-            message = messages[position]
-            this.messageView.text = message.message
-        }
+    inner class ButtonViewHolder(buttonView: View) : ItemViewHolder(buttonView) {
+        private val button: Button = buttonView.findViewById(R.id.load_button)
 
-        fun initIndex(position: Int) {
-            message = messages[position]
+        override fun initialize(position: Int) {
+            button.setOnClickListener {
+                val loadingThread = Thread {
+                    loadMore()
+                }
+                loadingThread.start()
+                loadingThread.join()
+                messagesRecycler.adapter?.notifyDataSetChanged()
+            }
         }
     }
 
-    inner class RecyclerAdapter : RecyclerView.Adapter<MessageViewHolder>() {
+    inner class MessageViewHolder(messageView: View) : ItemViewHolder(messageView) {
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
-            val inflater: LayoutInflater = LayoutInflater.from(parent.context)
-            val cellView: View = inflater.inflate(R.layout.message, parent, false)
-            return MessageViewHolder(cellView)
+        private lateinit var messageData: Message
+        private val message: TextView = messageView.findViewById(R.id.message_display)
+        private val sender: TextView = messageView.findViewById(R.id.sender_display)
+        private val layout: LinearLayout = messageView.findViewById(R.id.message_layout)
+
+        override fun initialize(position: Int) {
+            messageData = messages[position]
+            this.message.text = messageData.message
+            this.sender.text = messageData.client.split("@")[0]
+
+            layout.gravity = if (messageData.client == CLIENT) {
+                message.setBackgroundResource(R.drawable.outgoing_message)
+                message.setTextColor(resources.getColor(R.color.light))
+                Gravity.RIGHT
+            }
+            else {
+                // I don't really feel like I should need this else but it bugs out with it so idk
+                message.setBackgroundResource(R.drawable.incoming_message)
+                message.setTextColor(resources.getColor(R.color.dark))
+                Gravity.LEFT
+            }
+        }
+    }
+
+    inner class RecyclerAdapter : RecyclerView.Adapter<ItemViewHolder>() {
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
+
+            return if(viewType == R.layout.message){
+                MessageViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.message, parent, false))
+            } else {
+                ButtonViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.load_button, parent, false))
+            }
         }
 
-        override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
-            holder.initIndex(position)
+        override fun getItemViewType(position: Int): Int {
+            return if (position == numMessages - 1) R.layout.load_button else R.layout.message
+        }
 
-            // Operations to perform once the last cell is created
-//            if (position == grid.totalCells - 1) {
-//
-//                // Set grid to intent extra if it exists
-//                if (intent.hasExtra("grid")) {
-//                    val json = intent.getStringExtra("grid")
-//                    if (json != null) {
-//                        grid.setFromJson(json, this@MainActivity)
-//                    }
-//                }
-//
-//                // Separate thread for calculating neighbors of each cell
-//                thread {
-//                    for (cell in grid.cells.values) {
-//                        cell.calculateNeighbors(grid)
-//                    }
-//                }
-//            }
+        override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
+            holder.initialize(position)
         }
 
         override fun getItemCount(): Int {
-            return 1
+            return numMessages
         }
+    }
+
+    private fun getMessages() {
+        var rawMessages = getRequest(limit = MESSAGES_PER_CALL)
+        val gson = Gson()
+        val deserializedMessages = gson.fromJson(rawMessages, Messages::class.java)
+        messages.addAll(deserializedMessages.messages)
+        numMessages += MESSAGES_PER_CALL
+    }
+
+    private fun getSent() {
+        var rawMessages = getRequest(limit = 1)
+        val gson = Gson()
+        val deserializedMessages = gson.fromJson(rawMessages, Messages::class.java)
+        messages.add(0, deserializedMessages.messages[0])
+        numMessages++
+    }
+
+    private fun loadMore() {
+        var rawMessages = getRequest(limit = MESSAGES_PER_CALL, skip = numMessages)
+        val gson = Gson()
+        val deserializedMessages = gson.fromJson(rawMessages, Messages::class.java)
+        messages.addAll(deserializedMessages.messages)
+        numMessages += MESSAGES_PER_CALL
+    }
+
+    private fun getRequest(skip: Int = 0, limit: Int = 10): String {
+        val getUrl = HttpUrl.Builder()
+            .scheme("https")
+            .host("stepoutnyc.com")
+            .addPathSegment("chitchat")
+            .addQueryParameter("key", API_KEY)
+            .addQueryParameter("client", CLIENT)
+            .addQueryParameter("skip", skip.toString())
+            .addQueryParameter("limit", limit.toString())
+            .build()
+
+        val request: Request = Request.Builder()
+            .url(getUrl)
+            .build()
+
+        val call = client.newCall(request)
+        val response = call.execute()
+        return response.body!!.string()
+    }
+
+    private fun sendMessage(message: String) {
+        postRequest(message)
+    }
+
+    private fun postRequest(message: String): Response {
+
+        val formBody = FormBody.Builder()
+            .add("key", API_KEY)
+            .add("client", CLIENT)
+            .add("message", message)
+            .build()
+
+        val request = Request.Builder()
+            .url("https://stepoutnyc.com/chitchat")
+            .post(formBody)
+            .build()
+
+        val call = client.newCall(request)
+        return call.execute()
     }
 }
 
-fun getMessages(skip: Int = 0, limit: Int = 10): String {
-
-        val getUrl = HttpUrl.Builder()
-                .scheme("https")
-                .host("stepoutnyc.com")
-                .addPathSegment("chitchat")
-                .addQueryParameter("key", API_KEY)
-                .addQueryParameter("client", CLIENT)
-                .addQueryParameter("skip", skip.toString())
-                .addQueryParameter("limit", limit.toString())
-                .build()
-
-        return getRequest(getUrl)
-}
-
-fun getRequest(url: HttpUrl): String {
-    val request: Request = Request.Builder()
-            .url(url)
-            .build()
-
-    val call = client.newCall(request)
-    val response = call.execute()
-    return response.body!!.string()
-}
-
-fun sendMessage(message: String) {
-
-}
-
-fun postRequest(url: String): Response {
-    val request: Request = Request.Builder()
-            .url(url)
-            .build()
-
-    val call = client.newCall(request)
-    return call.execute()
-}

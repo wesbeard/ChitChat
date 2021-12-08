@@ -2,4 +2,6 @@
     <string name="app_name">ChitChat</string>
     <string name="message_hint">Type a message...</string>
     <string name="message_loading">Loading message...</string>
+    <string name="sender_loading">Loading sender...</string>
+    <string name="load_more">Load More</string>
 </resources>
