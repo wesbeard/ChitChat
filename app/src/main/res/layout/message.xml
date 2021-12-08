@@ -35,7 +35,7 @@
         android:maxWidth="300dp"
         android:paddingLeft="15dp"
         android:paddingTop="10dp"
-        android:paddingRight="20dp"
+        android:paddingRight="15dp"
         android:paddingBottom="10dp"
         android:text="@string/message_loading"
         android:textColor="@color/dark" />

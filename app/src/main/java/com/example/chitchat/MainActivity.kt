@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         messagesRecycler.adapter = RecyclerAdapter()
 
         messageBox = findViewById(R.id.message)
-        sendButton = findViewById(R.id.refresh)
+        sendButton = findViewById(R.id.send)
         sendButton.setOnClickListener {
             val sendThread = Thread {
                 sendMessage(messageBox.text.toString())

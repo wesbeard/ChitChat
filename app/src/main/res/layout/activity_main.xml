@@ -5,6 +5,8 @@
     android:id="@+id/app"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
+    android:backgroundTint="@color/background"
     android:orientation="vertical"
     android:paddingLeft="10dp"
     android:paddingRight="10dp"
@@ -45,10 +47,12 @@
             android:hint="@string/message_hint"
             android:inputType="textPersonName"
             android:minHeight="48dp"
+            android:textColor="@color/dark"
+            android:textColorHint="#FFC641"
             android:textCursorDrawable="@null" />
 
         <ImageButton
-            android:id="@+id/send2"
+            android:id="@+id/send"
             android:layout_width="100dp"
             android:layout_height="48dp"
             android:layout_weight="1"
