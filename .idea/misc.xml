@@ -6,10 +6,10 @@
         <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/drawable/incoming_message.xml" value="0.5697916666666667" />
         <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/drawable/outgoing_mesage.xml" value="0.5697916666666667" />
         <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/drawable/outgoing_message.xml" value="0.5697916666666667" />
-        <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/layout/activity_main.xml" value="0.25" />
+        <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/layout/activity_main.xml" value="0.75" />
         <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/layout/incoming_message.xml" value="0.5536458333333333" />
         <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/layout/load_button.xml" value="0.3307291666666667" />
-        <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/layout/message.xml" value="0.5536458333333333" />
+        <entry key="..\:/Users/Wes/AndroidStudioProjects/ChitChat/app/src/main/res/layout/message.xml" value="0.75" />
       </map>
     </option>
   </component>

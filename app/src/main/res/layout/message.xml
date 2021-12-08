@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/message_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -13,6 +14,15 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:text="@string/sender_loading"
+        android:textSize="14sp"
+        android:textStyle="italic" />
+
+    <TextView
+        android:id="@+id/time_display"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/time_loading"
         android:textSize="10sp"
         android:textStyle="italic" />
 
@@ -29,5 +39,50 @@
         android:paddingBottom="10dp"
         android:text="@string/message_loading"
         android:textColor="@color/dark" />
+
+    <LinearLayout
+        android:id="@+id/likes_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp">
+
+        <ImageView
+            android:id="@+id/like"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_weight="0"
+            app:srcCompat="@drawable/ic_baseline_thumb_up_24" />
+
+        <TextView
+            android:id="@+id/likes_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:layout_weight="0"
+            android:text="@string/count"
+            android:textSize="10sp" />
+
+        <ImageView
+            android:id="@+id/dislike"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginLeft="10dp"
+            android:layout_weight="0"
+            app:srcCompat="@drawable/ic_baseline_thumb_down_24" />
+
+        <TextView
+            android:id="@+id/dislikes_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="5dp"
+            android:layout_weight="0"
+            android:text="@string/count"
+            android:textSize="10sp" />
+
+    </LinearLayout>
 
 </LinearLayout>

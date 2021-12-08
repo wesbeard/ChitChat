@@ -1,16 +1,19 @@
 package com.example.chitchat
 
 import android.os.Bundle
+import android.text.format.DateFormat
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import okhttp3.*
 import androidx.recyclerview.widget.LinearLayoutManager
+import java.util.*
 
 const val API_KEY = "784ff8a6-1328-42b7-9702-5a11a99bf0e0"
 const val CLIENT = "wesley.beard@mymail.champlain.edu"
@@ -21,14 +24,17 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var messagesRecycler: RecyclerView
     private lateinit var sendButton: ImageButton
+    private lateinit var refreshButton: ImageButton
     private lateinit var messageBox: EditText
     var messages = mutableListOf<Message>()
+    var likedMessages = mutableListOf<Message>()
     var numMessages = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         title = "Chit Chat"
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
         val loadingThread = Thread {
             getMessages()
@@ -42,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         messagesRecycler.adapter = RecyclerAdapter()
 
         messageBox = findViewById(R.id.message)
-        sendButton = findViewById(R.id.send)
+        sendButton = findViewById(R.id.refresh)
         sendButton.setOnClickListener {
             val sendThread = Thread {
                 sendMessage(messageBox.text.toString())
@@ -52,9 +58,23 @@ class MainActivity : AppCompatActivity() {
             sendThread.join()
             messagesRecycler.adapter?.notifyItemInserted(0)
             messagesRecycler.smoothScrollToPosition(0)
+            messageBox.text = null
+        }
+        refreshButton = findViewById(R.id.refresh)
+        refreshButton.setOnClickListener {
+            messages.clear()
+            numMessages = 0
+
+            val loadingThread = Thread {
+                getMessages()
+            }
+
+            loadingThread.start()
+            loadingThread.join()
+            messagesRecycler.adapter?.notifyDataSetChanged()
         }
 
-        // Set layout manager to reverse linear layout
+        // Set layout manager to reverse linear layout so messages appear bottom to top
         val linearLayoutManager = LinearLayoutManager(this)
         linearLayoutManager.reverseLayout = true
         messagesRecycler.layoutManager = linearLayoutManager
@@ -84,23 +104,60 @@ class MainActivity : AppCompatActivity() {
         private lateinit var messageData: Message
         private val message: TextView = messageView.findViewById(R.id.message_display)
         private val sender: TextView = messageView.findViewById(R.id.sender_display)
-        private val layout: LinearLayout = messageView.findViewById(R.id.message_layout)
+        private val timestamp: TextView = messageView.findViewById(R.id.time_display)
+        private val messageLayout: LinearLayout = messageView.findViewById(R.id.message_layout)
+        private val likesLayout: LinearLayout = messageView.findViewById(R.id.likes_layout)
+        private val like: ImageView = messageView.findViewById(R.id.like)
+        private val dislike: ImageView = messageView.findViewById(R.id.dislike)
+        private val likeCount: TextView = messageView.findViewById(R.id.likes_count)
+        private val dislikeCount: TextView = messageView.findViewById(R.id.dislikes_count)
 
         override fun initialize(position: Int) {
             messageData = messages[position]
-            this.message.text = messageData.message
-            this.sender.text = messageData.client.split("@")[0]
+            message.text = messageData.message
+            sender.text = messageData.client.split("@")[0]
+            timestamp.text = DateFormat.format("h:mm aa M/d/yyyy", Date(messageData.date)).toString()
+            likeCount.text = messageData.likes.toString()
+            dislikeCount.text = messageData.dislikes.toString()
 
-            layout.gravity = if (messageData.client == CLIENT) {
+            like.setOnClickListener {
+                if (messageData !in likedMessages) {
+                    val likeThread = Thread {
+                        likeRequest("like", messageData.id)
+                    }
+                    likeThread.start()
+                    likeThread.join()
+                    messages[position].likes++
+                    messagesRecycler.adapter?.notifyItemChanged(position)
+                    likedMessages.add(messageData)
+                }
+            }
+
+            dislike.setOnClickListener {
+                if (messageData !in likedMessages) {
+                    val dislikeThread = Thread {
+                        likeRequest("dislike", messageData.id)
+                    }
+                    dislikeThread.start()
+                    dislikeThread.join()
+                    messages[position].dislikes++
+                    messagesRecycler.adapter?.notifyItemChanged(position)
+                    likedMessages.add(messageData)
+                }
+            }
+
+            if (messageData.client == CLIENT) {
                 message.setBackgroundResource(R.drawable.outgoing_message)
                 message.setTextColor(resources.getColor(R.color.light))
-                Gravity.RIGHT
+                messageLayout.gravity = Gravity.RIGHT
+                likesLayout.gravity = Gravity.RIGHT
             }
             else {
                 // I don't really feel like I should need this else but it bugs out with it so idk
                 message.setBackgroundResource(R.drawable.incoming_message)
                 message.setTextColor(resources.getColor(R.color.dark))
-                Gravity.LEFT
+                messageLayout.gravity = Gravity.LEFT
+                likesLayout.gravity = Gravity.LEFT
             }
         }
     }
@@ -173,12 +230,27 @@ class MainActivity : AppCompatActivity() {
         return response.body!!.string()
     }
 
-    private fun sendMessage(message: String) {
-        postRequest(message)
+    private fun likeRequest(likeType: String, id: String): String {
+        val getUrl = HttpUrl.Builder()
+            .scheme("https")
+            .host("stepoutnyc.com")
+            .addPathSegment("chitchat")
+            .addPathSegment(likeType)
+            .addPathSegment(id)
+            .addQueryParameter("key", API_KEY)
+            .addQueryParameter("client", CLIENT)
+            .build()
+
+        val request: Request = Request.Builder()
+            .url(getUrl)
+            .build()
+
+        val call = client.newCall(request)
+        val response = call.execute()
+        return response.body!!.string()
     }
 
-    private fun postRequest(message: String): Response {
-
+    private fun sendMessage(message: String) {
         val formBody = FormBody.Builder()
             .add("key", API_KEY)
             .add("client", CLIENT)
@@ -191,7 +263,7 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         val call = client.newCall(request)
-        return call.execute()
+        call.execute()
     }
 }
 
